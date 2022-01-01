@@ -278,6 +278,7 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	lea rdx, [r8 + rcx] 
 	mov ecx, dword [rdx + 88h] ; DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress
 	lea rdx, [r8 + rcx] 
+	mov rcx, r8
 	add ecx, dword [rdx + 1ch] ;IMAGE_EXPORT_DIRECTORY.AddressOfFunctions
 	mov rsi, r8 
 	add esi, dword [rcx + rax * 4] 
