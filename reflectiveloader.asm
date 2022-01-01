@@ -54,7 +54,6 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	jne find_base_loop 
 	mov [rbp + module_base - func_base], rbx 
 	
-	
 	mov rax, gs:[60h] ;PEB 
 	mov rax, [rax + 18h] ;Ldr 
 	inc rax, 10
@@ -133,7 +132,7 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	
 	get_functions_ntdll:
 	mov ecx, dword [rbp + NUMBER_OF_NTDLL_FUNCTIONS - func_base]
-	lea rdx, [ebp + ntdll_functions - func_base]
+	lea rdx, [rbp + ntdll_functions - func_base]
 	jmp get_functions 
 	
 	get_functions:
@@ -242,7 +241,7 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	
 	
 	
-	
+	mov rbx, [rbp + loaded_module_base - func_base]
 	; import table processing (already got addresses of LoadLibrary and GetProcAddress)
 	mov r10, rbx 
 	add r10d, dword [rdx + 90h]; IMAGE_DIRECTORY_ENTRY_IMPORT.VirtualAddress 
@@ -297,7 +296,7 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	
 	copy_and_call_stub: 
 	lea rsi, [rbp + cleanup_stub_start - func_base] 
-	mov rdi, [rbp + loaded_module_base - func_base]
+	mov rdi, rbx 
 	xor rcx, rcx 
 	mov ecx, dword [rbp + module_size - func_base]
 	add rdi, rcx  
