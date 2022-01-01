@@ -1,5 +1,6 @@
 
 
+
 .code 
 
 ReflectiveLoader proc EXPORT lpParameter: LPVOID 
@@ -242,14 +243,19 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	; relocations processing 
 	
 	copy_and_call_stub: 
-	xor rcx, rcx 
-	mov ecx, dword [rbp + module_size - func_base]
 	lea rsi, [rbp + cleanup_stub_start - func_base] 
 	mov rdi, [rbp + loaded_module_base - func_base]
+	xor rcx, rcx 
+	mov ecx, dword [rbp + module_size - func_base]
 	add rdi, rcx 
-	mov r8, rdi 
+	push rdi 
 	push rcx 
 	rep movsb 
+	not rcx ; rcx = -1 
+	xor rdx rdx 
+	xor r8, r8 
+	call [rbp + ntflushinstcache_addr - func_base] 
+	pop r8
 	pop rcx 
 	mov rax, rbx 
 	add eax, dword [rdx + 28h] ; OptionalHeader.AddressOfEntryPoint
