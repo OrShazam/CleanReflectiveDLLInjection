@@ -1,6 +1,5 @@
 
 
-
 .code 
 
 ReflectiveLoader proc EXPORT lpParameter: LPVOID 
@@ -238,9 +237,56 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	add rax, 42 ; sizeof(IMAGE_SECTION_HEADER)
 	loop map_sections_loop
 	
-	; todo
 	; import table processing (already got addresses of LoadLibrary and GetProcAddress)
-	; relocations processing 
+	mov r10, rbx 
+	add r10d, dword [rdx + 90h]; IMAGE_DIRECTORY_ENTRY_IMPORT.VirtualAddress 
+	sub r10, 20 
+	resolve_imports_loop:
+	add r10, 20 ; sizeof(IMAGE_DIRECTORY_ENTRY_EXPORT)
+	mov r8, rbx 
+	add r8d, dword [r10 + 0ch] ; IMAGE_DIRECTORY_ENTRY_IMPORT.Name 
+	cmp r8, rbx 
+	je process_relocations 
+	mov rcx, r8 
+	call [rbp + loadlibrary_addr - func_base] 
+	mov r8, rax 
+	mov r9, rbx
+	add r9d, dword [r10 + 10h] ; IMAGE_DIRECTORY_ENTRY_EXPORT.FirstThunk
+	sub r9, 8
+	process_import_thunks:
+	; r8 -> library base address 
+	; r9 -> IMAGE_THUNK_DATA base 
+	add r9, 8 ; sizeof(IMAGE_THUNK_DATA) 
+	mov rax, [r9] 
+	test rax,rax 
+	jz resolve_imports_loop
+	bt rax, 1 ; ordinal flag 
+	jc resolve_by_ordinal
+	add rax, rbx 
+	add rax, 2 ; IMAGE_IMPORT_BY_NAME.Name
+	push rdx 
+	mov rcx, r8
+	mov rdx, r9
+	call [rbp + getprocaddr_addr - func_base] 
+	pop rdx 
+	mov [r9], rax 
+	jmp process_import_thunks
+	resolve_by_ordinal:
+	push rdx 
+	xor rcx,rcx 
+	mov cx, word [r8 + 3ch] ; e_lfanew
+	lea rdx, [r8 + rcx] 
+	mov ecx, dword [rdx + 88h] ; DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress
+	lea rdx, [r8 + rcx] 
+	add ecx, dword [rdx + 1ch] ;IMAGE_EXPORT_DIRECTORY.AddressOfFunctions
+	mov rsi, r8 
+	add esi, dword [rcx + rax * 4] 
+	mov [r9], rsi 
+	pop rdx 
+	jmp process_import_thunks
+	
+	process_relocations:
+	;todo - relocations processing
 	
 	copy_and_call_stub: 
 	lea rsi, [rbp + cleanup_stub_start - func_base] 
@@ -262,7 +308,6 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	mov rdx, rbx 
 	mov rbx, [rbp + virtualfree_addr - func_base] 
 	call r8
-	
 	
 	failure:
 	ret 
