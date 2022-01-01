@@ -6,6 +6,7 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	
 	module_base dq 0
 	module_size dd 0 
+	raw_size dd 0 
 	loaded_module_base dq 0 
 	modules_needed dd 2
 	
@@ -224,16 +225,23 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	mov cx, word [rdx + 6h] ; FileHeader.NumberOfSections 
 	map_sections_loop: 
 	mov rsi, rbx 
-	add esi, dword [rax + 0x16] ; IMAGE_SECTION_HEADER.PointerToRawData
+	add esi, dword [rax + 16h] ; IMAGE_SECTION_HEADER.PointerToRawData
 	mov rdi, r8 
-	add edi, dword [rax + 0xe] ; IMAGE_SECTION_HEADER.VirtualAddress
+	add edi, dword [rax + 0eh] ; IMAGE_SECTION_HEADER.VirtualAddress
 	push rcx
 	xor rcx,rcx 
-	mov ecx, dword [rax + 0x12] ; IMAGE_SECTION_HEADER.SizeOfRawData
+	mov ecx, dword [rax + 12h] ; IMAGE_SECTION_HEADER.SizeOfRawData
 	rep movsb 
 	pop rcx 
 	add rax, 42 ; sizeof(IMAGE_SECTION_HEADER)
 	loop map_sections_loop
+	sub rax, 42 
+	add ecx, dword [rax + 16h] ; IMAGE_SECTION_HEADER.PointerToRawData
+	add ecx, dword [rax + 12h] ; IMAGE_SECTION_HEADER.SizeOfRawData
+	mov dword [rbp + raw_size - func_base], ecx 
+	
+	
+	
 	
 	; import table processing (already got addresses of LoadLibrary and GetProcAddress)
 	mov r10, rbx 
@@ -292,8 +300,7 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	mov rdi, [rbp + loaded_module_base - func_base]
 	xor rcx, rcx 
 	mov ecx, dword [rbp + module_size - func_base]
-	add rdi, rcx 
-	push rcx  
+	add rdi, rcx  
 	push rdi 
 	rep movsb 
 	not rcx ; rcx = -1 
@@ -301,12 +308,12 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	xor r8, r8 
 	call [rbp + ntflushinstcache_addr - func_base] 
 	pop r10 
-	pop rcx 
-	mov rax, rbx 
+	mov ecx, dword [rbp + raw_size - func_base]
+	mov rax, [rbp + loaded_module_base - func_base] 
+	mov r8, rax
 	add eax, dword [rdx + 28h] ; OptionalHeader.AddressOfEntryPoint
 	mov rdx, rbx 
-	mov rbx, [rbp + virtualfree_addr - func_base] 
-	mov r8, [rbp + loaded_module_base - func_base] 
+	mov rbx, [rbp + virtualfree_addr - func_base]  
 	mov r9, lpParameter
 	call r10 
 	
