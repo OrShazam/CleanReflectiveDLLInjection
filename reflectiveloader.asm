@@ -1,6 +1,7 @@
 .code 
 
 ReflectiveLoader proc EXPORT lpParameter: LPVOID 
+	; FULL OF ERRORS NEED TO FIX THIS 
 	call getaddr
 	func_base:
 	
