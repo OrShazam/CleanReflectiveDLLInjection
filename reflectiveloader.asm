@@ -218,9 +218,10 @@ ReflectiveLoader proc EXPORT lpParameter: LPVOID
 	rep movsb 
 	xor rcx,rcx 
 	mov rax, rdx 
+	add rax, 4h
 	add rax, 18h ; OptionalHeader
-	add ax, word [rdx + 14h] ; FileHeader.SizeOfOptionalHeader
-	
+	mov cx, word [rdx + 14h] ; FileHeader.SizeOfOptionalHeader
+	add rax, rcx 
 	mov cx, word [rdx + 6h] ; FileHeader.NumberOfSections 
 	map_sections_loop: 
 	mov rsi, rbx 
